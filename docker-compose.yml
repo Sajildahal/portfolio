@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nepse-intelligence-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://nepse_user:nepse_secure_pass@postgres:5432/nepse_intelligence?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - nepse-network
+
+  postgres:
+    image: timescale/timescaledb-ha:pg16
+    container_name: nepse-postgres-timescale
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nepse_user
+      POSTGRES_PASSWORD: nepse_secure_pass
+      POSTGRES_DB: nepse_intelligence
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - nepse-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: nepse-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - nepse-network
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  nepse-network:
+    driver: bridge
